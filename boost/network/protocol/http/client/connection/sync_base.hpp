@@ -81,10 +81,10 @@ struct sync_connection_base_impl {
                     boost::asio::streambuf& response_buffer) {
     boost::asio::read_until(socket_, response_buffer, "\r\n\r\n");
     std::istream response_stream(&response_buffer);
-    string_type header_line, name, value;
+    string_type header_line, name;
     while (std::getline(response_stream, header_line) && header_line != "\r") {
       trim_right_if(header_line, boost::is_space() || boost::is_any_of("\r"));
-      typename string_type::size_type colon_offset;
+      typename string_type::size_type colon_offset, value_offset;
       if (header_line.size() && header_line[0] == ' ') {
         assert(!name.empty());
         if (name.empty())
@@ -94,9 +94,8 @@ struct sync_connection_base_impl {
       } else if ((colon_offset = header_line.find_first_of(':')) !=
                  string_type::npos) {
         name = header_line.substr(0, colon_offset);
-        value = header_line.substr(colon_offset + 1);
-        trim(value);
-        response_ << header(name, value);
+        value_offset = header_line.find_first_not_of(' ', colon_offset + 1);
+        response_ << header(name, header_line.substr(value_offset, header_line.size() - value_offset));
       }
     }
   }
